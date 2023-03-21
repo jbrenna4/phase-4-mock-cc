@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from flask import Flask, make_response, request
+from flask import Flask, make_response, request, jsonify
 from flask_migrate import Migrate
 from flask_restful import Api, Resource
 
@@ -21,6 +21,9 @@ api = Api(app)
 # def home():
 #     return ''
 
+#Do we need these
+#hero.to_dict(rules=('-hero_powers',)
+#power.to_dict(rules=('-hero_powers',)
 
 
 class Heroes(Resource):
@@ -34,6 +37,8 @@ class Heroes(Resource):
     
 api.add_resource(Heroes, '/heroes')
 
+
+# POSSIBLE ERROR I'm using to-dict in my query instead of making a new variable for it
 class HeroById(Resource):
     def get(self, id):
         hero = Hero.query.filter(Hero.id == id).first().to_dict()
@@ -43,7 +48,8 @@ class HeroById(Resource):
                 "error": "Hero not found"
             }, 404)
 
-        response = make_response(hero, 200)
+        else:
+            response = make_response(hero, 200)
 
         return response
 
@@ -61,6 +67,9 @@ class Powers(Resource):
     
 api.add_resource(Powers, '/powers')
 
+# we need to use get request to check the method?
+
+
 class PowerById(Resource):
     def get(self, id):
         power = Power.query.filter(Power.id == id).first().to_dict()
@@ -70,7 +79,8 @@ class PowerById(Resource):
                 "error": "Power not found"
             }, 404)
 
-        response = make_response(power, 200)
+        else:
+            response = make_response(power, 200)
 
         return response
     
@@ -79,23 +89,27 @@ class PowerById(Resource):
 
         power = Power.query.filter(Power.id == id).first()
 
-
-        # do i have to import abort??? 
         if not power:
-            return make_response({
-                "error": "Power not found"
-            }, 404)
+            return make_response({ "error": "Power not found" }, 404)
 
-        request_json = request.get_json()
-        for key in request_json():
-            setattr(power, key,request_json[key])
+        try: 
+            request_json = request.get_json()
+            for key in request_json:
+                setattr(power, key, request_json[key])
         
-        db.session.add(power)
-        db.session.commit()
+        
+            db.session.add(power)
+            db.session.commit()
 
-        response = make_response(power.to_dict(), 200)
+            response = make_response(power.to_dict(), 200)
+
+        except ValueError:
+            response = make_response({
+                "error": "Invalid input"
+            }, 400)
 
         return response
+    
 
 api.add_resource(PowerById, '/powers/<int:id>')
 
@@ -105,34 +119,35 @@ api.add_resource(PowerById, '/powers/<int:id>')
 # not sure where to put my error...or why not abort?
 
 class HeroPowers(Resource):
-    def get(self):
+    # def get(self):
 
-        hero_powers_list = [hero_powers.to_dict() for hero_powers in HeroPower.query.all()]
+    #     hero_powers_list = [hero_powers.to_dict() for hero_powers in HeroPower.query.all()]
 
-        response = make_response(hero_powers_list, 200)
+    #     response = make_response(hero_powers_list, 200)
 
-        return response
+    #     return response
     
     def post(self):
-        request_json = request.get_json()
 
+        try:
 
-        new_hero_power = HeroPower(
-            strength=request_json['strength'],
-            hero_id=request_json['hero_id'],
-            power_id=request_json['power_id']
-        )
+            new_hero_power = HeroPower(
+                strength=request.get_json()['strength'],
+                hero_id=request.get_json()['hero_id'],
+                power_id=request.get_json()['power_id']
+            )
+            db.session.add(new_hero_power)
+            db.session.commit()
 
-        if not new_hero_power:
-            return make_response({
+            # I had trouble with this one
+            hero_power_dict = new_hero_power.hero.to_dict()
+
+            response = make_response(hero_power_dict, 201)
+
+        except ValueError:
+            response = make_response({
                 "error": "Invalid input"
-            }, 404)
-
-        db.session.add(new_hero_power)
-        db.session.commit()
-
-
-        response = make_response(new_hero_power.to_dict(), 201)
+            }, 400)
 
         return response
 
