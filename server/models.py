@@ -73,4 +73,4 @@ class HeroPower(db.Model, SerializerMixin):
     def validate_strength(self, key, strength):
         if strength != 'Strong' and strength != 'Weak' and strength != 'Average':
             raise ValueError('that is not a valid strength rating')
-        return strength
+        return strength 

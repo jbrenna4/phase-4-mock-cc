@@ -38,7 +38,6 @@ class Heroes(Resource):
 api.add_resource(Heroes, '/heroes')
 
 
-# POSSIBLE ERROR I'm using to-dict in my query instead of making a new variable for it
 class HeroById(Resource):
     def get(self, id):
         hero = Hero.query.filter(Hero.id == id).first().to_dict()
@@ -140,9 +139,17 @@ class HeroPowers(Resource):
             db.session.commit()
 
             # I had trouble with this one
-            hero_power_dict = new_hero_power.hero.to_dict()
+            hero_power_dict = new_hero_power.hero.to_dict(rules=('hero_powers',))
 
             response = make_response(hero_power_dict, 201)
+
+            # hero = Hero.query.filter(Hero.id == new_hero_power.hero_id).first()
+            # hero_dict = hero.to_dict(rules=('hero_powers',))
+
+            # response = make_response(
+            #     jsonify(hero_dict),
+            #     201
+            # )
 
         except ValueError:
             response = make_response({
@@ -160,3 +167,4 @@ api.add_resource(HeroPowers, '/hero_powers')
 
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
+    
